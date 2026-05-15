@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>デジモンカードカタログ プレビュー</title>
+  <style>
+    body { margin: 0; padding: 16px; background: #0d0d0d; }
+
+    .dcg-catalog {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel2: #0b1220;
+      --line: #24324a;
+      --text: #edf2f7;
+      --muted: #9fb2cc;
+      --accent: #e97a1a;
+      --accent-2: #17b1a3;
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 10% -20%, rgba(23,177,163,.2), transparent 55%),
+        radial-gradient(900px 500px at 90% -30%, rgba(233,122,26,.25), transparent 60%),
+        linear-gradient(180deg, #0d1424, #0a101d 60%, #080d17 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, .35);
+      width: min(1400px, 100%);
+      margin: 0 auto;
+    }
+    .dcg-head h2 { margin: 0 0 6px; font-size: clamp(1.25rem, 2.2vw, 1.8rem); letter-spacing: .02em; }
+    .dcg-head p { margin: 0; color: var(--muted); line-height: 1.65; }
+    .dcg-result { margin-top: 8px !important; color: #ffe3b8 !important; font-weight: 700; }
+    .dcg-seo-copy { margin-top: 8px !important; font-size: .92rem; color: #d7e6ff !important; }
+
+    .dcg-toolbar {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .dcg-toolbar label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .dcg-toolbar span { font-size: .74rem; color: var(--muted); letter-spacing: .02em; }
+    .dcg-toolbar input,
+    .dcg-toolbar select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid #33435f;
+      border-radius: 10px;
+      background: #0b1220;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: .9rem;
+    }
+
+    .dcg-color-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .dcg-color-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+    .dcg-color-btn { border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 8px 16px; min-width: 56px; text-align: center; font-size: .84rem; cursor: pointer; color: #fff; background: #223454; }
+    .dcg-color-btn.active { outline: 2px solid #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.22) inset; }
+    .dcg-color-btn-red { background: #c0392b; }
+    .dcg-color-btn-blue { background: #2980b9; }
+    .dcg-color-btn-yellow { background: #c9a000; }
+    .dcg-color-btn-green { background: #27ae60; }
+    .dcg-color-btn-black { background: #2c2c2c; }
+    .dcg-color-btn-purple { background: #8e44ad; }
+    .dcg-color-btn-white { background: #ddd; color: #333; }
+
+    .dcg-toggle-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; grid-column: span 2; }
+    .dcg-toggle-row .dcg-parallel { flex: 0 0 calc(50% - 5px); min-height: 42px; min-width: 0; border: 1px solid #33435f; border-radius: 10px; padding: 9px 12px; background: #0b1220; }
+    .dcg-parallel { display: flex; align-items: center; gap: 8px; }
+    .dcg-parallel span { white-space: nowrap; }
+    .dcg-parallel em { font-size: .82rem; font-style: normal; color: var(--muted); white-space: nowrap; }
+
+    .dcg-reset {
+      align-self: end;
+      min-height: 38px;
+      border: 1px solid #4f6690;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1b2941, #223454);
+      color: #e9eef7;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .dcg-deck-sticky {
+      position: fixed;
+      right: 12px;
+      top: 120px;
+      z-index: 9990;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+    .dcg-deck-tab {
+      width: 92px;
+      min-height: 36px;
+      border: 1px solid #58667d;
+      border-radius: 9px;
+      background: linear-gradient(180deg, #d9dde6, #b4bccb);
+      color: #293244;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .dcg-deck-tab.active { background: linear-gradient(180deg, #2c76ff, #1149c7); border-color: #93bbff; color: #ffffff; }
+    .dcg-deck-tab.filter { background: linear-gradient(180deg, #ff7e33, #c63f00); border-color: #ffd3b7; color: #ffffff; }
+    .dcg-deck-tab.hidden { display: none; }
+
+    .dcg-deck-panel {
+      width: 180px;
+      border: 1px solid rgba(164,188,225,.45);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(15,23,42,.96), rgba(10,16,29,.96));
+      box-shadow: 0 16px 34px rgba(0,0,0,.34);
+      padding: 10px;
+      color: #edf2f7;
+    }
+    .dcg-deck-panel[hidden] { display: none; }
+    .dcg-deck-panel-title { font-size: .9rem; font-weight: 800; color: #fff2cc; }
+    .dcg-deck-panel-mode { margin-top: 4px; font-size: .75rem; color: #9fb2cc; }
+    .dcg-deck-panel-total { margin-top: 8px; font-size: .84rem; font-weight: 700; color: #d7e6ff; }
+    .dcg-deck-panel-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .dcg-deck-action {
+      width: 100%;
+      min-height: 34px;
+      border-radius: 8px;
+      border: 1px solid #5872a0;
+      background: #1b2941;
+      color: #edf2f7;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .dcg-deck-action.warn { background: linear-gradient(180deg, #6b1f1f, #4b1111); border-color: #d48787; }
+    .dcg-deck-action.save { background: linear-gradient(180deg, #1f7e54, #145336); border-color: #9ddcbf; }
+    .dcg-deck-action.back { background: linear-gradient(180deg, #3a4e71, #263752); border-color: #a8bddf; }
+    .dcg-deck-note { margin-top: 8px; font-size: .72rem; line-height: 1.45; color: #ffddb5; }
+    .dcg-deck-mobile-close,
+    .dcg-deck-mobile-peek { display: none; }
+
+    .dcg-grid {
+      list-style: none;
+      margin: 14px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 12px;
+      justify-content: center;
+    }
+    .dcg-grid, .dcg-grid li { margin-left: 0 !important; padding-left: 0 !important; }
+    .dcg-card {
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      border: 1px solid #2c3c58;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .dcg-card:hover { transform: translateY(-3px); border-color: #5672a4; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+    .dcg-open { display: block; width: 100%; border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer; }
+    .dcg-thumb { display: block; position: relative; }
+    .dcg-thumb::after {
+      content: 'SAMPLE';
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%) rotate(-24deg);
+      font-size: clamp(1.1rem, 3.2vw, 2rem);
+      font-weight: 800;
+      letter-spacing: .16em;
+      color: rgba(255, 255, 255, .22);
+      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+      pointer-events: none;
+    }
+    .dcg-card img { display: block; width: 100%; height: auto; aspect-ratio: 2/3; object-fit: cover; background: #0b1220; }
+    .dcg-meta { padding: 10px; }
+    .dcg-meta h3 { margin: 0 0 6px; font-size: .9rem; line-height: 1.45; }
+    .dcg-line { margin: 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .dcg-line.soft { color: var(--muted); margin-top: 6px; min-height: 16px; justify-content: space-between; }
+    .dcg-market-line { margin-top: 6px; font-size: .82rem; color: #ffe3b8; }
+    .dcg-market-line .dcg-market-link { color: #ffd68f; text-decoration: none; border-bottom: 1px dotted rgba(255, 214, 143, .65); }
+    .dcg-market-line .dcg-market-sub { margin-left: 8px; font-size: .74rem; color: #c6d5ea; }
+    .dcg-market-line .dcg-market-web { color: #c6d5ea; text-decoration: underline; text-underline-offset: 2px; }
+
+    .dcg-badge { background: #1b2a42; border: 1px solid #31476d; border-radius: 99px; padding: 2px 8px; font-size: .72rem; }
+    .dcg-badge.rarity { background: linear-gradient(135deg, #7b4810, #ac6618); border-color: #c97a1f; color: #fff8eb; }
+    .dcg-badge.parallel { background: linear-gradient(135deg, #1db7d6, #2f97cf); border-color: #2ea3d8; color: #fff; }
+
+    .dcg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,.25); }
+    .dcg-red { background: #dc4f44; }
+    .dcg-blue { background: #3a81d6; }
+    .dcg-yellow { background: #efc238; }
+    .dcg-green { background: #41bf6d; }
+    .dcg-black { background: #8a93a3; }
+    .dcg-purple { background: #9660ca; }
+    .dcg-white { background: #d9dfec; }
+    .dcg-all { background: conic-gradient(#dc4f44 0 25%, #3a81d6 25% 50%, #41bf6d 50% 75%, #efc238 75%); }
+
+    .dcg-deck-counter { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: #d7e6ff; }
+    .dcg-deck-counter button {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid #4f6690;
+      background: #1a2942; color: #edf2f7; font-weight: 700; font-size: 1rem;
+      cursor: pointer; line-height: 1; padding: 0;
+    }
+    .dcg-deck-counter .dcg-deck-count { min-width: 20px; text-align: center; font-weight: 700; font-size: .96rem; }
+
+    .dcg-loadmore { margin-top: 14px; text-align: center; }
+    .dcg-loadmore-btn {
+      min-height: 40px; border-radius: 10px; border: 1px solid #5872a0;
+      background: linear-gradient(180deg, #27406a, #1a2f4d);
+      color: #edf2f7; font-weight: 700; padding: 0 18px; cursor: pointer;
+    }
+    .dcg-sentinel { width: 100%; height: 1px; }
+
+    .dcg-modal[hidden] { display: none; }
+    .dcg-modal { position: fixed; inset: 0; z-index: 9999; }
+    .dcg-modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,.72); }
+    .dcg-modal-box {
+      position: relative;
+      margin: 2vh auto;
+      width: min(1280px, calc(100vw - 18px));
+      max-height: 96vh;
+      overflow: auto;
+      border: 1px solid #2f456a;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #f3f6fc, #e8eef8);
+      box-shadow: 0 26px 56px rgba(0,0,0,.45);
+    }
+    .dcg-modal-close {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      margin: 0;
+      width: 36px;
+      height: 36px;
+      border: 1px solid #8ea6cb;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #1f3f74;
+      font-size: 1.1rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10001;
+    }
+    .dcg-modal-content { padding: 56px 18px 18px; clear: both; }
+
+    .dcg-detail { display: grid; grid-template-columns: minmax(240px, 32%) 1fr; gap: 18px; }
+    .dcg-detail img { width: 100%; border-radius: 8px; }
+    .dcg-detail h3 { margin: 0 0 8px; font-size: clamp(1.25rem, 2.2vw, 2rem); color: #122c58; }
+    .dcg-detail dl { margin: 0; display: grid; grid-template-columns: 130px 1fr; border-bottom: 1px solid #b4c4de; }
+    .dcg-detail dt, .dcg-detail dd { margin: 0; padding: 8px 6px; font-size: .95rem; line-height: 1.65; color: #1a2e54; }
+    .dcg-detail dt { color: #1f4e9d; font-weight: 700; }
+    .dcg-detail-section { margin-top: 10px; }
+    .dcg-detail-section h4 { margin: 0 0 6px; color: #1f4e9d; font-size: .98rem; }
+    .dcg-detail-pre { margin: 0; white-space: pre-wrap; font-size: .92rem; line-height: 1.72; color: #1c2e52; }
+    .dcg-detail-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+    .dcg-variant-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .dcg-variant-btn { border: 1px solid #aac0de; background: #fff; border-radius: 8px; padding: 3px; cursor: pointer; }
+    .dcg-variant-btn img { width: 100%; border-radius: 6px; display: block; }
+    .dcg-variant-id { font-size: .72rem; color: #234a84; text-align: center; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .dcg-qabox { margin-top: 8px; border: 1px solid #b3c5e3; border-radius: 8px; overflow: hidden; background: #eef3fb; }
+    .dcg-qanum { padding: 6px 8px; font-size: .8rem; font-weight: 700; color: #9c1b51; background: #ffe9f4; border-bottom: 1px solid #e4bfd1; }
+    .dcg-qaq { padding: 8px; font-size: .9rem; color: #1e3358; background: #f5f8fe; }
+    .dcg-qaa { padding: 8px; font-size: .9rem; color: #173053; background: #e4f0ff; border-top: 1px solid #c3d6f1; }
+
+    .dcg-c-red { color: #c62828; font-weight: 700; }
+    .dcg-c-blue { color: #1565c0; font-weight: 700; }
+    .dcg-c-yellow { color: #9a6a00; font-weight: 700; }
+    .dcg-c-green { color: #1b8a46; font-weight: 700; }
+    .dcg-c-black { color: #2d2d2d; font-weight: 700; }
+    .dcg-c-purple { color: #6a1b9a; font-weight: 700; }
+    .dcg-c-white { color: #6f7b8c; font-weight: 700; }
+    .dcg-c-all { color: #b35d12; font-weight: 700; }
+
+    @media (max-width: 1024px) {
+      .dcg-toolbar { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+      .dcg-toggle-row { grid-column: span 3; }
+    }
+
+    @media (max-width: 680px) {
+      .dcg-catalog { padding: 14px; border-radius: 12px; }
+      .dcg-toolbar { grid-template-columns: 1fr; gap: 8px; }
+      .dcg-toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; grid-column: 1 / -1; }
+      .dcg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; justify-items: center; }
+      .dcg-grid > .dcg-card { width: 100%; max-width: 220px; }
+
+      .dcg-deck-sticky { right: 4px; top: 84px; transform: none; bottom: auto; gap: 4px; }
+      .dcg-deck-mobile-close {
+        display: inline-flex;
+        width: 28px;
+        height: 28px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid #8ea6cb;
+        background: #f3f7ff;
+        color: #17345f;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        align-self: flex-end;
+      }
+      .dcg-deck-sticky.collapsed .dcg-deck-mobile-close,
+      .dcg-deck-sticky.collapsed .dcg-deck-tab,
+      .dcg-deck-sticky.collapsed .dcg-deck-panel { display: none; }
+      .dcg-deck-mobile-peek {
+        display: none;
+        width: 14px;
+        height: 66px;
+        border: 1px solid rgba(164,188,225,.55);
+        border-radius: 9px 0 0 9px;
+        background: linear-gradient(180deg, rgba(15,23,42,.96), rgba(10,16,29,.96));
+        box-shadow: 0 10px 22px rgba(0,0,0,.26);
+        cursor: pointer;
+      }
+      .dcg-deck-sticky.collapsed .dcg-deck-mobile-peek { display: block; }
+      .dcg-deck-panel { width: 148px; padding: 8px; }
+      .dcg-deck-tab { width: 84px; }
+      .dcg-deck-counter button { width: 34px; height: 34px; }
+
+      .dcg-detail { grid-template-columns: 1fr; }
+      .dcg-variant-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .dcg-modal-close { top: 8px; right: 8px; width: 40px; height: 40px; z-index: 10001; }
+      .dcg-modal-content { padding: 58px 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+<section class="dcg-catalog" data-dcg-root data-dcg-build="2026-05-15T00:00:00" data-dcg-url="https://playershi.com/wp-json/digimon/v1/cards" data-dcg-market-url="https://playershi.com/wp-json/digimon/v1/market" data-dcg-total="0" data-dcg-details-count="0" data-dcg-chunk="20">
+  <header class="dcg-head">
+    <h2>デジモンカードゲーム カード一覧</h2>
+    <p>収録弾、色、レアリティ、Lv、コスト、DPなどの条件で絞り込みできるデジモンカードゲーム検索カタログです。</p>
+    <p class="dcg-result" data-dcg-result>0件</p>
+    <p class="dcg-seo-copy">アリシオンで使うカードの比較やデッキ調整に使いやすいよう、カード番号・色・タイプ・効果文で横断検索できます。検索条件を細かく組み合わせて、目的のカード候補を素早く絞り込めます。</p>
+  </header>
+
+  <div class="dcg-toolbar" role="search" aria-label="カード絞り込み">
+    <label>
+      <span>キーワード</span>
+      <input type="search" data-dcg-q placeholder="カード名・カードNo・効果文で検索" autocomplete="off">
+    </label>
+
+    <label>
+      <span>レアリティ</span>
+      <select data-dcg-rarity><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>Lv/テイマー/OP</span>
+      <select data-dcg-level><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>タイプ</span>
+      <select data-dcg-type><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>収録弾</span>
+      <select data-dcg-category><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>形態</span>
+      <select data-dcg-form><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>属性</span>
+      <select data-dcg-attr><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>トリガーワード</span>
+      <select data-dcg-trigger><option value="">すべて</option></select>
+    </label>
+
+    <label>
+      <span>コスト（下限）</span>
+      <select data-dcg-cost-min><option value="">下限なし</option></select>
+    </label>
+
+    <label>
+      <span>コスト（上限）</span>
+      <select data-dcg-cost-max><option value="">上限なし</option></select>
+    </label>
+
+    <label>
+      <span>DP（下限）</span>
+      <select data-dcg-dp-min><option value="">下限なし</option></select>
+    </label>
+
+    <label>
+      <span>DP（上限）</span>
+      <select data-dcg-dp-max><option value="">上限なし</option></select>
+    </label>
+
+    <div class="dcg-color-wrap">
+      <span>色（ボタンで複数選択）</span>
+      <div class="dcg-color-btns" data-dcg-color-btns></div>
+    </div>
+
+    <div class="dcg-toggle-row">
+      <label class="dcg-parallel">
+        <span>パラレル</span>
+        <input type="checkbox" data-dcg-parallel>
+        <em>パラレルを含む</em>
+      </label>
+
+      <label class="dcg-parallel">
+        <span>モード</span>
+        <input type="checkbox" data-dcg-alicion>
+        <em>アリシオン</em>
+      </label>
+    </div>
+
+    <button type="button" class="dcg-reset" data-dcg-reset>条件をリセット</button>
+  </div>
+
+  <div class="dcg-deck-sticky" data-dcg-deck-sticky aria-label="デッキビルド"></div>
+
+  <ol class="dcg-grid" data-dcg-grid></ol>
+
+  <div class="dcg-loadmore" data-dcg-loadmore hidden>
+    <button type="button" class="dcg-loadmore-btn" data-dcg-loadmore-btn>さらに表示</button>
+  </div>
+  <div class="dcg-sentinel" data-dcg-sentinel aria-hidden="true"></div>
+
+  <div class="dcg-modal" data-dcg-modal hidden>
+    <div class="dcg-modal-bg" data-dcg-close></div>
+    <div class="dcg-modal-box" role="dialog" aria-modal="true" aria-label="カード詳細">
+      <button type="button" class="dcg-modal-close" data-dcg-close aria-label="閉じる">×</button>
+      <div class="dcg-modal-content" data-dcg-modal-content></div>
+    </div>
+  </div>
+
+  <script type="application/json" data-dcg-seed>{"total":0,"cards":[],"filter_options":{},"details":{}}</script>
+
+  <noscript>
+    <p class="dcg-noscript">JavaScriptが無効な環境では、絞り込みは利用できません。</p>
+  </noscript>
+</section>
+
+<script>
+(function() {
+  var root = document.querySelector('[data-dcg-root]');
+  if (!root) return;
+
+  var seedEl = root.querySelector('[data-dcg-seed]');
+  var seed = { total: 0, cards: [], filter_options: {}, details: {} };
+  if (seedEl && seedEl.textContent) {
+    try { seed = JSON.parse(seedEl.textContent); } catch (e) {}
+  }
+
+  var options = seed.filter_options || {};
+  var dataUrl = root.getAttribute('data-dcg-url') || '';
+  var marketApiUrl = root.getAttribute('data-dcg-market-url') || (dataUrl || '').replace(/\/cards(?:\?.*)?$/i, '/market');
+  var chunkSize = parseInt(root.getAttribute('data-dcg-chunk') || '20', 10);
+  if (isNaN(chunkSize) || chunkSize < 8) chunkSize = 20;
+
+  var grid = root.querySelector('[data-dcg-grid]');
+  var result = root.querySelector('[data-dcg-result]');
+  var loadMoreWrap = root.querySelector('[data-dcg-loadmore]');
+  var loadMoreBtn = root.querySelector('[data-dcg-loadmore-btn]');
+  var sentinel = root.querySelector('[data-dcg-sentinel]');
+
+  var q = root.querySelector('[data-dcg-q]');
+  var rarity = root.querySelector('[data-dcg-rarity]');
+  var level = root.querySelector('[data-dcg-level]');
+  var type = root.querySelector('[data-dcg-type]');
+  var category = root.querySelector('[data-dcg-category]');
+  var form = root.querySelector('[data-dcg-form]');
+  var attr = root.querySelector('[data-dcg-attr]');
+  var trigger = root.querySelector('[data-dcg-trigger]');
+  var costMin = root.querySelector('[data-dcg-cost-min]');
+  var costMax = root.querySelector('[data-dcg-cost-max]');
+  var dpMin = root.querySelector('[data-dcg-dp-min]');
+  var dpMax = root.querySelector('[data-dcg-dp-max]');
+  var colorBtnsWrap = root.querySelector('[data-dcg-color-btns]');
+  var parallel = root.querySelector('[data-dcg-parallel]');
+  var alicion = root.querySelector('[data-dcg-alicion]');
+  var reset = root.querySelector('[data-dcg-reset]');
+  var deckSticky = root.querySelector('[data-dcg-deck-sticky]');
+  var modal = root.querySelector('[data-dcg-modal]');
+  var modalBox = root.querySelector('.dcg-modal-box');
+  var modalContent = root.querySelector('[data-dcg-modal-content]');
+
+  var activeColors = new Set();
+  var fullData = null;
+  var isLoading = false;
+  var masterCards = [];
+  var filteredCards = [];
+  var renderedCount = 0;
+  var chunkObserver = null;
+  var detailMap = {};
+  var detailTextMap = {};
+  var cardById = {};
+  var marketCache = {};
+  var marketPending = {};
+  var currentDetailCardId = '';
+
+  var ALICION_CATEGORY_IDS = ["503001", "503002", "503003", "503101", "503102", "503103", "503104"];
+  var alicionCategorySet = new Set(ALICION_CATEGORY_IDS.map(function(v) { return String(v); }));
+
+  var DECK_COUNT = 9;
+  var deckStorageKey = 'dcg_deck_counts_v1';
+  var deckUiStateKey = 'dcg_deck_ui_state_v1';
+  var deckCounts = {};
+  var deckMobileCollapsed = false;
+  var deckState = { activeIndex: 0, mode: 'selected', filterBackup: null };
+
+  function isMobileDeckUi() {
+    return !!(window.matchMedia && window.matchMedia('(max-width: 680px)').matches);
+  }
+
+  function parsePackCode(title) {
+    var t = String(title || '');
+    var m = t.match(/【\s*([A-Za-z]+)\s*-\s*(\d+)\s*】/);
+    if (!m) return null;
+    return { prefix: String(m[1] || '').toUpperCase(), num: parseInt(m[2], 10) || 0 };
+  }
+
+  function isAlicionEnabled() { return !!(alicion && alicion.checked); }
+  function categoryAllowedByAlicion(catId) { return alicionCategorySet.has(String(catId || '')); }
+
+  function cardMatchesAlicion(c) {
+    if (!isAlicionEnabled()) return true;
+    var ids = Array.isArray(c.categories) ? c.categories : [];
+    for (var i = 0; i < ids.length; i++) {
+      if (categoryAllowedByAlicion(ids[i])) return true;
+    }
+    return false;
+  }
+
+  function getDeckBucket(deckIndex) {
+    var key = String(deckIndex);
+    if (!deckCounts[key] || typeof deckCounts[key] !== 'object') deckCounts[key] = {};
+    return deckCounts[key];
+  }
+
+  function getDeckCount(deckIndex, cardId) {
+    var bucket = getDeckBucket(deckIndex);
+    var key = String(cardId || '');
+    var val = bucket[key];
+    return typeof val === 'number' ? val : 0;
+  }
+
+  function getDeckTotalCount(deckIndex) {
+    var bucket = getDeckBucket(deckIndex);
+    var total = 0;
+    Object.keys(bucket).forEach(function(key) { total += parseInt(bucket[key], 10) || 0; });
+    return total;
+  }
+
+  function getDeckEntries(deckIndex) {
+    return masterCards.filter(function(card) {
+      return getDeckCount(deckIndex, card.id || '') > 0;
+    }).map(function(card) {
+      return { card: card, count: getDeckCount(deckIndex, card.id || '') };
+    });
+  }
+
+  function setDeckCount(deckIndex, cardId, next) {
+    var bucket = getDeckBucket(deckIndex);
+    var key = String(cardId || '');
+    var n = Math.max(0, Math.min(4, parseInt(next, 10) || 0));
+    if (n === 0) delete bucket[key]; else bucket[key] = n;
+  }
+
+  function saveDeckCounts() {
+    try { localStorage.setItem(deckStorageKey, JSON.stringify(deckCounts)); } catch (e) {}
+  }
+
+  function saveDeckUiState() {
+    try { localStorage.setItem(deckUiStateKey, JSON.stringify({ activeIndex: deckState.activeIndex })); } catch (e) {}
+  }
+
+  function loadDeckCounts() {
+    var saved;
+    try { saved = JSON.parse(localStorage.getItem(deckStorageKey) || ''); } catch (e) { return; }
+    if (!saved || typeof saved !== 'object') return;
+
+    var normalized = {};
+    for (var i = 0; i < DECK_COUNT; i++) {
+      var k = String(i);
+      var rawDeck = saved[k];
+      if (!rawDeck || typeof rawDeck !== 'object') { normalized[k] = {}; continue; }
+      var cleanDeck = {};
+      Object.keys(rawDeck).forEach(function(cardId) {
+        var n = parseInt(rawDeck[cardId], 10);
+        if (!isNaN(n) && n > 0) cleanDeck[String(cardId)] = Math.min(4, n);
+      });
+      normalized[k] = cleanDeck;
+    }
+    deckCounts = normalized;
+  }
+
+  function loadDeckUiState() {
+    var saved;
+    try { saved = JSON.parse(localStorage.getItem(deckUiStateKey) || ''); } catch (e) { return; }
+    if (!saved || typeof saved !== 'object') return;
+    var idx = parseInt(saved.activeIndex, 10);
+    if (!isNaN(idx) && idx >= 0 && idx < DECK_COUNT) deckState.activeIndex = idx;
+    deckState.mode = 'selected';
+  }
+
+  function shouldShowDeckControls() { return deckState.mode !== 'off'; }
+  function isDeckFilterMode() { return deckState.mode === 'filter'; }
+  function getDeckModeLabel() { return deckState.mode === 'filter' ? 'フィルター中' : (deckState.mode === 'selected' ? '選択中' : '未選択'); }
+  function getActiveDeckLabel() { var base = 'Deck' + (deckState.activeIndex + 1); return deckState.mode === 'filter' ? base + 'のみ' : base; }
+
+  function resetFilterInputs() {
+    if (q) q.value = '';
+    if (rarity) rarity.value = '';
+    if (level) level.value = '';
+    if (type) type.value = '';
+    if (category) category.value = '';
+    if (form) form.value = '';
+    if (attr) attr.value = '';
+    if (trigger) trigger.value = '';
+    if (costMin) costMin.value = '';
+    if (costMax) costMax.value = '';
+    if (dpMin) dpMin.value = '';
+    if (dpMax) dpMax.value = '';
+    if (parallel) parallel.checked = false;
+    if (alicion) alicion.checked = false;
+    activeColors.clear();
+    if (colorBtnsWrap) {
+      Array.prototype.forEach.call(colorBtnsWrap.querySelectorAll('.dcg-color-btn'), function(btn) { btn.classList.remove('active'); });
+    }
+  }
+
+  function getCurrentFilterState() {
+    return {
+      q: q ? q.value : '',
+      rarity: rarity ? rarity.value : '',
+      level: level ? level.value : '',
+      type: type ? type.value : '',
+      category: category ? category.value : '',
+      form: form ? form.value : '',
+      attr: attr ? attr.value : '',
+      trigger: trigger ? trigger.value : '',
+      costMin: costMin ? costMin.value : '',
+      costMax: costMax ? costMax.value : '',
+      dpMin: dpMin ? dpMin.value : '',
+      dpMax: dpMax ? dpMax.value : '',
+      parallel: parallel ? parallel.checked : false,
+      alicion: alicion ? alicion.checked : false,
+      colors: Array.from(activeColors)
+    };
+  }
+
+  function applyFilterState(saved) {
+    if (!saved || typeof saved !== 'object') return false;
+    if (q) q.value = saved.q || '';
+    if (rarity) rarity.value = saved.rarity || '';
+    if (level) level.value = saved.level || '';
+    if (type) type.value = saved.type || '';
+    if (form) form.value = saved.form || '';
+    if (attr) attr.value = saved.attr || '';
+    if (trigger) trigger.value = saved.trigger || '';
+    if (costMin) costMin.value = saved.costMin || '';
+    if (costMax) costMax.value = saved.costMax || '';
+    if (dpMin) dpMin.value = saved.dpMin || '';
+    if (dpMax) dpMax.value = saved.dpMax || '';
+    if (parallel) parallel.checked = !!saved.parallel;
+    if (alicion) alicion.checked = !!saved.alicion;
+
+    buildCategoryOptions(options.categories || []);
+    if (category) category.value = saved.category || '';
+
+    activeColors.clear();
+    if (Array.isArray(saved.colors)) saved.colors.forEach(function(c) { activeColors.add(c); });
+    if (colorBtnsWrap) {
+      Array.prototype.forEach.call(colorBtnsWrap.querySelectorAll('.dcg-color-btn'), function(btn) {
+        btn.classList.toggle('active', activeColors.has(btn.getAttribute('data-color')));
+      });
+    }
+    return true;
+  }
+
+  function renderDeckSticky() {
+    if (!deckSticky) return;
+    if (!isMobileDeckUi()) deckMobileCollapsed = false;
+    var html = '';
+
+    if (deckMobileCollapsed) {
+      html += '<button type="button" class="dcg-deck-mobile-peek" data-dcg-deck-expand aria-label="Deckを表示"></button>';
+      deckSticky.innerHTML = html;
+      deckSticky.classList.add('collapsed');
+      return;
+    }
+
+    html += '<button type="button" class="dcg-deck-mobile-close" data-dcg-deck-collapse aria-label="Deckを隠す">×</button>';
+    var deckTotal = getDeckTotalCount(deckState.activeIndex);
+
+    for (var i = 0; i < DECK_COUNT; i++) {
+      var isActive = i === deckState.activeIndex && deckState.mode !== 'off';
+      var cls = 'dcg-deck-tab';
+      if (isActive) cls += ' active';
+      if (isActive && deckState.mode === 'filter') cls += ' filter';
+      if (deckState.mode !== 'off' && i !== deckState.activeIndex) cls += ' hidden';
+      var label = 'Deck' + (i + 1);
+      if (isActive) label = '▶' + label;
+      html += '<button type="button" class="' + cls + '" data-dcg-deck-tab="' + i + '">' + label + '</button>';
+    }
+
+    var showPanel = deckState.mode !== 'off';
+    html += '<div class="dcg-deck-panel"' + (showPanel ? '' : ' hidden') + '>'
+      + '<div class="dcg-deck-panel-title">' + getActiveDeckLabel() + '</div>'
+      + '<div class="dcg-deck-panel-mode">' + getDeckModeLabel() + '</div>'
+      + '<div class="dcg-deck-panel-total">Deck枚数：' + String(deckTotal) + '</div>';
+
+    if (deckState.mode === 'selected') {
+      html += '<div class="dcg-deck-panel-actions">'
+        + '<button type="button" class="dcg-deck-action" data-dcg-deck-confirm>決定</button>'
+        + '</div>'
+        + '<div class="dcg-deck-note">決定するとそのDeckだけを表示します</div>';
+    }
+
+    if (deckState.mode === 'filter') {
+      html += '<div class="dcg-deck-panel-actions">'
+        + '<button type="button" class="dcg-deck-action back" data-dcg-deck-back>Deck選択に戻る</button>'
+        + '<button type="button" class="dcg-deck-action warn" data-dcg-deck-reset>Deck初期化</button>'
+        + '<button type="button" class="dcg-deck-action save" data-dcg-deck-save>デッキ出力</button>'
+        + '</div>'
+        + '<div class="dcg-deck-note">出力条件: 合計55枚以内 / デジモン+テイマー+オプション50枚以内 / デジタマ5枚以内</div>';
+    }
+
+    html += '</div>';
+    deckSticky.innerHTML = html;
+    deckSticky.classList.remove('collapsed');
+  }
+
+  function enterDeckFilterMode() {
+    if (deckState.mode === 'filter') return;
+    deckState.filterBackup = getCurrentFilterState();
+    resetFilterInputs();
+    buildCategoryOptions(options.categories || []);
+    deckState.mode = 'filter';
+    saveDeckUiState();
+    renderDeckSticky();
+  }
+
+  function leaveDeckFilterModeAndRestore() {
+    if (deckState.mode !== 'filter') return;
+    var backup = deckState.filterBackup;
+    deckState.filterBackup = null;
+    deckState.mode = 'off';
+    if (backup) applyFilterState(backup);
+    saveDeckUiState();
+    renderDeckSticky();
+  }
+
+  function selectDeck(deckIndex) {
+    if (deckState.mode === 'filter' && deckState.filterBackup) {
+      applyFilterState(deckState.filterBackup);
+      deckState.filterBackup = null;
+    }
+    deckState.activeIndex = deckIndex;
+    deckState.mode = 'selected';
+    saveDeckUiState();
+    renderDeckSticky();
+  }
+
+  function resetActiveDeck() {
+    deckCounts[String(deckState.activeIndex)] = {};
+    saveDeckCounts();
+    renderDeckSticky();
+  }
+
+  function getTypeRank(typeText) {
+    var t = String(typeText || '');
+    if (t.indexOf('デジタマ') !== -1) return 0;
+    if (t.indexOf('デジモン') !== -1) return 1;
+    if (t.indexOf('テイマー') !== -1) return 2;
+    if (t.indexOf('オプション') !== -1) return 3;
+    return 9;
+  }
+
+  function getLevelNumber(levelText) {
+    var m = String(levelText || '').match(/(\d+)/);
+    return m ? (parseInt(m[1], 10) || 999) : 999;
+  }
+
+  function getDeckExportValidation(deckIndex) {
+    var entries = getDeckEntries(deckIndex);
+    var total = 0;
+    var digitama = 0;
+    var main = 0;
+
+    entries.forEach(function(entry) {
+      var count = parseInt(entry.count, 10) || 0;
+      total += count;
+      var t = String((entry.card && entry.card.type) || '');
+      if (t.indexOf('デジタマ') !== -1) digitama += count;
+      else main += count;
+    });
+
+    if (total > 55) return { ok: false, message: '合計枚数は55枚以内で出力できます（現在 ' + total + '枚）' };
+    if (main > 50) return { ok: false, message: 'デジモン・テイマー・オプションの合計は50枚以内です（現在 ' + main + '枚）' };
+    if (digitama > 5) return { ok: false, message: 'デジタマは5枚以内です（現在 ' + digitama + '枚）' };
+    return { ok: true, message: '' };
+  }
+
+  function exportActiveDeckAsText() {
+    var validation = getDeckExportValidation(deckState.activeIndex);
+    if (!validation.ok) {
+      window.alert(validation.message || 'デッキ条件を満たしていません');
+      return;
+    }
+
+    var entries = getDeckEntries(deckState.activeIndex);
+    if (!entries.length) {
+      window.alert('デッキにカードがありません');
+      return;
+    }
+
+    var cnoMap = {};
+    var cnoOrder = [];
+    entries.forEach(function(entry) {
+      var cno = String(entry.card.cno || '');
+      if (!cnoMap[cno]) {
+        cnoOrder.push(cno);
+        cnoMap[cno] = { card: entry.card, count: 0 };
+      }
+      cnoMap[cno].count += entry.count;
+    });
+
+    var rows = cnoOrder.map(function(cno) {
+      return { cno: cno, card: cnoMap[cno].card, count: cnoMap[cno].count };
+    });
+
+    rows.sort(function(a, b) {
+      var ar = getTypeRank(a.card && a.card.type);
+      var br = getTypeRank(b.card && b.card.type);
+      if (ar !== br) return ar - br;
+      if (ar === 1 && br === 1) {
+        var al = getLevelNumber(a.card && a.card.level);
+        var bl = getLevelNumber(b.card && b.card.level);
+        if (al !== bl) return al - bl;
+      }
+      return String(a.cno) < String(b.cno) ? -1 : String(a.cno) > String(b.cno) ? 1 : 0;
+    });
+
+    var tableRows = rows.map(function(r) {
+      var c = r.card;
+      return '<tr>'
+        + '<td>' + escHtml(r.cno || '') + '</td>'
+        + '<td>' + escHtml(c.name || '') + '</td>'
+        + '<td>' + escHtml(c.rarity || '') + '</td>'
+        + '<td>' + escHtml(c.type || '') + '</td>'
+        + '<td>' + escHtml(c.level || '') + '</td>'
+        + '<td><strong>' + r.count + '</strong></td>'
+        + '</tr>';
+    }).join('');
+
+    var totalCount = rows.reduce(function(s, r) { return s + r.count; }, 0);
+    var deckLabel = 'Deck' + (deckState.activeIndex + 1);
+    var deckDate = new Date().toLocaleDateString('ja-JP');
+
+    var html = '<!DOCTYPE html><html lang="ja"><head>'
+      + '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>' + escHtml(deckLabel) + '</title>'
+      + '<style>body{font-family:sans-serif;margin:0;padding:16px;background:#fff;color:#111;}h1{font-size:1.2rem;margin:0 0 4px;}p.sub{color:#555;font-size:.85rem;margin:0 0 14px;}table{border-collapse:collapse;width:100%;font-size:.92rem;}th,td{border:1px solid #ccc;padding:7px 9px;text-align:left;}th{background:#223;color:#fff;white-space:nowrap;}tr:nth-child(even){background:#f5f5f5;}td:first-child,td:last-child{text-align:center;white-space:nowrap;}</style>'
+      + '</head><body>'
+      + '<h1>' + escHtml(deckLabel) + '</h1>'
+      + '<p class="sub">' + escHtml(deckDate) + '　合計 ' + totalCount + '枚</p>'
+      + '<table><thead><tr><th>No</th><th>名前</th><th>レア</th><th>タイプ</th><th>Lv</th><th>枚数</th></tr></thead>'
+      + '<tbody>' + tableRows + '</tbody></table>'
+      + '</body></html>';
+
+    var now = new Date();
+    var pad2 = function(n) { return String(n).padStart(2, '0'); };
+    var stamp = String(now.getFullYear()) + pad2(now.getMonth() + 1) + pad2(now.getDate()) + '_' + pad2(now.getHours()) + pad2(now.getMinutes()) + pad2(now.getSeconds());
+
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var blobUrl = URL.createObjectURL(blob);
+    var dl = document.createElement('a');
+    dl.href = blobUrl;
+    dl.download = 'deck' + String(deckState.activeIndex + 1) + '_' + stamp + '.html';
+    document.body.appendChild(dl);
+    dl.click();
+    document.body.removeChild(dl);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1500);
+
+    var win = window.open('', '_blank');
+    if (win) {
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    }
+  }
+
+  function buildCategoryOptions(rawCategories) {
+    if (!category) return;
+    var current = category.value;
+    category.innerHTML = '<option value="">すべて</option>';
+    var cats = Array.isArray(rawCategories) ? rawCategories.slice() : [];
+
+    if (isAlicionEnabled()) {
+      cats = cats.filter(function(x) { return categoryAllowedByAlicion(x && x.id); });
+    }
+
+    var prio = { BT: 0, ST: 1 };
+    cats.sort(function(a, b) {
+      var ac = parsePackCode(a && a.title);
+      var bc = parsePackCode(b && b.title);
+      if (!ac && !bc) return String(a.title || '') < String(b.title || '') ? -1 : 1;
+      if (!ac) return 1;
+      if (!bc) return -1;
+      var ap = Object.prototype.hasOwnProperty.call(prio, ac.prefix) ? prio[ac.prefix] : 10;
+      var bp = Object.prototype.hasOwnProperty.call(prio, bc.prefix) ? prio[bc.prefix] : 10;
+      if (ap !== bp) return ap - bp;
+      if (ac.prefix !== bc.prefix) return ac.prefix < bc.prefix ? -1 : 1;
+      return bc.num - ac.num;
+    });
+
+    cats.forEach(function(v) {
+      var op = document.createElement('option');
+      op.value = v.id || '';
+      op.textContent = v.title || v.id || '';
+      category.appendChild(op);
+    });
+
+    if (current) category.value = current;
+    if (category.value && category.value !== current) category.value = '';
+  }
+
+  function appendOptions(select, arr, valueKey, labelKey) {
+    if (!select || !Array.isArray(arr)) return;
+    arr.forEach(function(item) {
+      var op = document.createElement('option');
+      if (typeof item === 'string') {
+        op.value = item;
+        op.textContent = item;
+      } else {
+        op.value = item[valueKey] || '';
+        op.textContent = item[labelKey] || item[valueKey] || '';
+      }
+      select.appendChild(op);
+    });
+  }
+
+  function normalizeLevelOptions(rawLevels, cards) {
+    var lvSet = new Set(Array.isArray(rawLevels) ? rawLevels : []);
+    if (Array.isArray(cards)) {
+      cards.forEach(function(c) {
+        if (!c) return;
+        if (c.levelFilter) lvSet.add(c.levelFilter);
+        if ((c.type || '').indexOf('テイマー') !== -1) lvSet.add('テイマー');
+        if ((c.type || '').indexOf('オプション') !== -1) lvSet.add('オプション');
+      });
+    }
+
+    var priority = { 'Lv.-': -1, 'Lv.2': 2, 'Lv.3': 3, 'Lv.4': 4, 'Lv.5': 5, 'Lv.6': 6, 'Lv.7': 7, 'テイマー': 98, 'オプション': 99 };
+    return Array.from(lvSet).sort(function(a, b) {
+      var pa = Object.prototype.hasOwnProperty.call(priority, a) ? priority[a] : 500;
+      var pb = Object.prototype.hasOwnProperty.call(priority, b) ? priority[b] : 500;
+      if (pa !== pb) return pa - pb;
+      return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+    });
+  }
+
+  function clearSelect(sel, head) {
+    if (!sel) return;
+    sel.innerHTML = head || '<option value="">すべて</option>';
+  }
+
+  function initFilterControls(opts) {
+    clearSelect(rarity, '<option value="">すべて</option>');
+    clearSelect(level, '<option value="">すべて</option>');
+    clearSelect(type, '<option value="">すべて</option>');
+    clearSelect(form, '<option value="">すべて</option>');
+    clearSelect(attr, '<option value="">すべて</option>');
+    clearSelect(trigger, '<option value="">すべて</option>');
+    clearSelect(costMin, '<option value="">下限なし</option>');
+    clearSelect(costMax, '<option value="">上限なし</option>');
+    clearSelect(dpMin, '<option value="">下限なし</option>');
+    clearSelect(dpMax, '<option value="">上限なし</option>');
+    if (colorBtnsWrap) colorBtnsWrap.innerHTML = '';
+    activeColors.clear();
+
+    appendOptions(rarity, opts.rarities || []);
+    appendOptions(level, normalizeLevelOptions(opts.levels || [], masterCards));
+    appendOptions(type, opts.types || []);
+    buildCategoryOptions(opts.categories || []);
+    appendOptions(form, opts.forms || []);
+    appendOptions(attr, opts.attrs || []);
+    appendOptions(trigger, opts.triggers || []);
+    appendOptions(costMin, opts.costs || []);
+    appendOptions(costMax, opts.costs || []);
+    appendOptions(dpMin, opts.dps || []);
+    appendOptions(dpMax, opts.dps || []);
+
+    (opts.colors || []).forEach(function(c) {
+      if (!colorBtnsWrap) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dcg-color-btn dcg-color-btn-' + colorClass(c);
+      btn.textContent = c;
+      btn.setAttribute('data-color', c);
+      btn.addEventListener('click', function() {
+        if (activeColors.has(c)) activeColors.delete(c); else activeColors.add(c);
+        btn.classList.toggle('active', activeColors.has(c));
+        apply();
+      });
+      colorBtnsWrap.appendChild(btn);
+    });
+  }
+
+  function colorClass(c) {
+    return { '赤':'red','青':'blue','黄':'yellow','緑':'green','黒':'black','紫':'purple','白':'white','全':'all' }[c] || 'all';
+  }
+
+  function containsWordstack(raw, terms) {
+    if (!terms) return true;
+    return raw.indexOf(terms) !== -1;
+  }
+
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeCard(c) {
+    function pickLevelFilter(levelText, typeText) {
+      var lv = String(levelText || '').trim();
+      var tp = String(typeText || '').trim();
+      if (lv) return lv;
+      if (tp.indexOf('テイマー') !== -1) return 'テイマー';
+      if (tp.indexOf('オプション') !== -1) return 'オプション';
+      return '';
+    }
+
+    var infoSectionsSrc = Array.isArray(c.info_sections) ? c.info_sections : (Array.isArray(c.infoSections) ? c.infoSections : []);
+    var rawCats = Array.isArray(c.cats) ? c.cats : (Array.isArray(c.categories) ? c.categories : []);
+    var catsDetailed = rawCats.map(function(x) {
+      return {
+        id: String((x && (x.id || x.category_id)) || ''),
+        title: String((x && x.title) || '')
+      };
+    }).filter(function(x) { return !!x.id; });
+    var catIds = catsDetailed.map(function(x) { return x.id; });
+
+    function pickInfo(label) {
+      var sections = infoSectionsSrc;
+      for (var i = 0; i < sections.length; i++) {
+        if (sections[i] && sections[i].label === label) return sections[i].value || '';
+      }
+      return '';
+    }
+
+    function pickColors() {
+      if (Array.isArray(c.colors)) return c.colors;
+      var sections = infoSectionsSrc;
+      for (var i = 0; i < sections.length; i++) {
+        var s = sections[i];
+        if (s && s.label === '色' && Array.isArray(s.colors)) {
+          return s.colors.map(function(v) { return (v && v.text) ? String(v.text) : ''; }).filter(Boolean);
+        }
+      }
+      return [];
+    }
+
+    function pickTypes() {
+      if (Array.isArray(c.types)) return c.types;
+      var t = pickInfo('タイプ');
+      return t ? t.split('/').map(function(v) { return v.trim(); }).filter(Boolean) : [];
+    }
+
+    return {
+      id: c.id || c.record_id || c.popup_id || c.card_number || '',
+      name: c.name || c.title || '',
+      cno: c.cno || c.card_number || '',
+      rarity: c.rarity || '',
+      type: c.type || c.card_type || '',
+      level: c.level || '',
+      levelFilter: pickLevelFilter(c.level || '', c.type || c.card_type || ''),
+      img: c.img_orig || c.image_url || c.img || '',
+      imgOrig: c.img_orig || c.image_url || c.img || '',
+      imgWebp: c.img || c.image_url || c.img_orig || '',
+      variant: (function() {
+        var idText = String(c.id || c.record_id || c.popup_id || '').trim();
+        var cnoText = String(c.cno || c.card_number || '').trim();
+        var m = idText.match(/(?:_|\b)(P[0-9]+)$/i) || cnoText.match(/_(P[0-9]+)$/i);
+        return m ? String(m[1]).toUpperCase() : '';
+      })(),
+      parallel: !!(c.parallel || c.is_parallel_variant || String(c.id || c.record_id || c.popup_id || '').match(/(?:_|\b)P[0-9]+$/i)),
+      cost: c.cost || pickInfo('コスト') || '',
+      dp: c.dp || pickInfo('DP') || '',
+      form: c.form || pickInfo('形態') || '',
+      attr: c.attr || pickInfo('属性') || '',
+      effect: c.effect || '',
+      colors: pickColors(),
+      types: pickTypes(),
+      triggers: Array.isArray(c.triggers) ? c.triggers : [],
+      categories: catIds,
+      categoriesDetailed: catsDetailed,
+      infoSections: infoSectionsSrc,
+      sectionText: (function() {
+        var sections = infoSectionsSrc;
+        var parts = [];
+        for (var i = 0; i < sections.length; i++) {
+          var s = sections[i];
+          if (!s) continue;
+          if (s.text) { parts.push(String(s.text)); }
+          else if (Array.isArray(s.entries)) {
+            for (var j = 0; j < s.entries.length; j++) {
+              var e = s.entries[j];
+              if (e && e.label) parts.push(String(e.label));
+              if (e && e.value) parts.push(String(e.value));
+            }
+          } else if (s.value) {
+            parts.push(String(s.value));
+          }
+        }
+        if (c.effect) parts.push(String(c.effect));
+        if (c.upper) parts.push(String(c.upper));
+        if (c.lower) parts.push(String(c.lower));
+        if (c.text) parts.push(String(c.text));
+        return parts.join(' ');
+      })()
+    };
+  }
+
+  function deriveOptionsFromCards(cards) {
+    var rarities = new Set();
+    var levels = new Set();
+    var colors = new Set();
+    var forms = new Set();
+    var attrs = new Set();
+    var types = new Set();
+    var triggers = new Set();
+    var costs = new Set();
+    var dps = new Set();
+    var categoryMap = {};
+
+    cards.forEach(function(c) {
+      if (c.rarity) rarities.add(c.rarity);
+      if (c.levelFilter) levels.add(c.levelFilter);
+      (c.colors || []).forEach(function(v) { if (v) colors.add(v); });
+      if (c.form) forms.add(c.form);
+      if (c.attr) attrs.add(c.attr);
+      (c.types || []).forEach(function(v) { if (v) types.add(v); });
+      (c.triggers || []).forEach(function(v) { if (v) triggers.add(v); });
+      if (c.cost) costs.add(c.cost);
+      if (c.dp) dps.add(c.dp);
+      (c.categoriesDetailed || []).forEach(function(cat) {
+        if (cat.id) categoryMap[cat.id] = cat.title || cat.id;
+      });
+    });
+
+    return {
+      rarities: Array.from(rarities),
+      levels: Array.from(levels),
+      colors: Array.from(colors),
+      forms: Array.from(forms),
+      attrs: Array.from(attrs),
+      types: Array.from(types),
+      triggers: Array.from(triggers),
+      costs: Array.from(costs),
+      dps: Array.from(dps),
+      categories: Object.keys(categoryMap).map(function(k) { return { id: k, title: categoryMap[k] }; })
+    };
+  }
+
+  function rebuildCardByIdMap() {
+    cardById = {};
+    (masterCards || []).forEach(function(c) {
+      var id = String((c && c.id) || '');
+      if (!id) return;
+      cardById[id] = c;
+    });
+  }
+
+  function marketKey(card) {
+    var cno = String((card && card.cno) || '').trim().toUpperCase();
+    var name = String((card && card.name) || '').trim();
+    var parallelFlag = card && card.parallel ? '1' : '0';
+    var variant = String((card && card.variant) || '').trim().toUpperCase();
+    return cno + '||' + name + '||' + parallelFlag + '||' + variant;
+  }
+
+  function buildRakutenFallbackUrl(card) {
+    var cno = String((card && card.cno) || '').trim();
+    var name = String((card && card.name) || '').trim();
+    var qv = [cno, name, card && card.parallel ? 'パラレル' : '', 'デジモンカード'].filter(function(v) { return v; }).join(' ').trim();
+    return 'https://search.rakuten.co.jp/search/mall/' + encodeURIComponent(qv || 'デジモンカード') + '/';
+  }
+
+  function buildRakutenBrowserUrl(card) {
+    return buildRakutenFallbackUrl(card);
+  }
+
+  function isLikelyMobile() {
+    if (window.matchMedia && window.matchMedia('(max-width: 680px)').matches) return true;
+    var ua = String((navigator && navigator.userAgent) || '').toLowerCase();
+    return /iphone|ipad|ipod|android|mobile/.test(ua);
+  }
+
+  function waitMs(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  function formatYen(n) {
+    var num = parseInt(n, 10);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('ja-JP');
+  }
+
+  function buildMarketLinkHtml(data, card) {
+    var url = data && data.url ? String(data.url) : '';
+    if (!url) return '相場：参考値なし';
+
+    var label = (data && typeof data.price === 'number' && !isNaN(data.price))
+      ? ('相場：' + formatYen(data.price) + '円')
+      : '相場：参考値なし';
+
+    var html = '<a class="dcg-market-link" href="' + escHtml(url) + '" target="_blank" rel="noopener noreferrer sponsored nofollow">' + escHtml(label) + '</a>';
+    if (isLikelyMobile()) {
+      var browserUrl = buildRakutenBrowserUrl(card || {});
+      html += '<span class="dcg-market-sub">(<a class="dcg-market-web" href="' + escHtml(browserUrl) + '" target="_blank" rel="noopener noreferrer nofollow">ブラウザで開く</a>)</span>';
+    }
+    return html;
+  }
+
+  function getCachedMarket(card) {
+    var key = marketKey(card);
+    if (!key || !marketCache[key]) return null;
+    return marketCache[key].ok === true ? marketCache[key] : null;
+  }
+
+  function fetchMarket(card) {
+    if (!card) return Promise.resolve(null);
+    var key = marketKey(card);
+    if (!key) return Promise.resolve(null);
+    if (marketCache[key] && marketCache[key].ok === true) return Promise.resolve(marketCache[key]);
+    if (marketPending[key]) return marketPending[key];
+
+    if (!marketApiUrl) {
+      var fallback = { ok: false, price: null, url: buildRakutenFallbackUrl(card), count: 0, currency: 'JPY' };
+      marketCache[key] = fallback;
+      return Promise.resolve(fallback);
+    }
+
+    function fetchMarketOnce(forceRefresh) {
+      var query = '?cno=' + encodeURIComponent(String(card.cno || ''))
+        + '&name=' + encodeURIComponent(String(card.name || ''))
+        + '&parallel=' + encodeURIComponent(card && card.parallel ? '1' : '0')
+        + '&variant=' + encodeURIComponent(String((card && card.variant) || ''));
+      if (forceRefresh) query += '&refresh=1';
+
+      return fetch(marketApiUrl + query, { credentials: 'omit', cache: 'no-store' })
+        .then(function(res) { return res.ok ? res.json() : null; })
+        .then(function(json) {
+          var payload = json && typeof json === 'object' ? json : {};
+          if (!payload.url) payload.url = buildRakutenFallbackUrl(card);
+          if (typeof payload.price !== 'number') payload.price = null;
+          if (!payload.currency) payload.currency = 'JPY';
+          return payload;
+        });
+    }
+
+    var req = fetchMarketOnce(false)
+      .then(function(payload) {
+        var success = !!(payload && payload.ok === true && typeof payload.price === 'number' && !isNaN(payload.price));
+        if (!success) {
+          return waitMs(350)
+            .then(function() { return fetchMarketOnce(true); })
+            .catch(function() { return payload; });
+        }
+        return payload;
+      })
+      .then(function(payload) {
+        marketCache[key] = payload;
+        return payload;
+      })
+      .catch(function() {
+        var fallback = { ok: false, price: null, url: buildRakutenFallbackUrl(card), count: 0, currency: 'JPY' };
+        marketCache[key] = fallback;
+        return fallback;
+      })
+      .then(function(payload) {
+        delete marketPending[key];
+        return payload;
+      }, function(err) {
+        delete marketPending[key];
+        throw err;
+      });
+
+    marketPending[key] = req;
+    return req;
+  }
+
+  function hydrateVisibleMarket() {
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.dcg-card[data-id]');
+    Array.prototype.forEach.call(cards, function(el) {
+      var target = el.querySelector('[data-dcg-market-line]');
+      if (!target) return;
+      var id = String(el.getAttribute('data-id') || '');
+      var card = cardById[id] || null;
+      if (!card) return;
+
+      var cached = getCachedMarket(card);
+      if (cached) {
+        target.innerHTML = buildMarketLinkHtml(cached, card);
+        return;
+      }
+
+      fetchMarket(card).then(function(data) {
+        if (!target.isConnected) return;
+        target.innerHTML = buildMarketLinkHtml(data || {}, card);
+      });
+    });
+  }
+
+  function renderCard(c) {
+    var dots = (c.colors || []).map(function(color) {
+      var cls = { '赤':'red','青':'blue','黄':'yellow','緑':'green','黒':'black','紫':'purple','白':'white','全':'all' }[color] || 'all';
+      return '<span class="dcg-dot dcg-' + cls + '" title="' + escHtml(color) + '"></span>';
+    }).join('');
+
+    var badges = '';
+    if (c.cno) badges += '<span class="dcg-badge">' + escHtml(c.cno) + '</span>';
+    if (c.rarity) badges += '<span class="dcg-badge rarity">' + escHtml(c.rarity) + '</span>';
+    if (c.level) badges += '<span class="dcg-badge">' + escHtml(c.level) + '</span>';
+
+    var counterHtml = '';
+    if (shouldShowDeckControls()) {
+      var count = getDeckCount(deckState.activeIndex, c.id || '');
+      var cid = escHtml(c.id || '');
+      counterHtml = '<span class="dcg-deck-counter">'
+        + '<button type="button" data-dcg-deck-minus="' + cid + '" aria-label="デッキ枚数を減らす">-</button>'
+        + '<span class="dcg-deck-count" data-dcg-deck-count="' + cid + '">' + String(count) + '</span>'
+        + '<button type="button" data-dcg-deck-plus="' + cid + '" aria-label="デッキ枚数を増やす">+</button>'
+        + '</span>';
+    }
+
+    return ''
+      + '<li class="dcg-card" data-id="' + escHtml(c.id || '') + '" data-name="' + escHtml((c.name || '').toLowerCase()) + '" data-cno="' + escHtml((c.cno || '').toLowerCase()) + '" data-rarity="' + escHtml(c.rarity || '') + '" data-level="' + escHtml(c.level || '') + '" data-type="' + escHtml(c.type || '') + '" data-types="' + escHtml((c.types || []).join('|')) + '" data-categories="' + escHtml((c.categories || []).join('|')) + '" data-colors="' + escHtml((c.colors || []).join('|')) + '" data-cost="' + escHtml(c.cost || '') + '" data-dp="' + escHtml(c.dp || '') + '" data-form="' + escHtml(c.form || '') + '" data-attr="' + escHtml(c.attr || '') + '" data-triggers="' + escHtml((c.triggers || []).join('|')) + '" data-parallel="' + (c.parallel ? '1' : '0') + '" data-effect="' + escHtml((c.effect || '').toLowerCase()) + '">'
+      + '<article>'
+      + '<button type="button" class="dcg-open" data-dcg-open="' + escHtml(c.id || '') + '" aria-label="' + escHtml(c.name || '') + 'の詳細を表示">'
+      + '<span class="dcg-thumb"><img src="' + escHtml(c.img || '') + '" data-fallback="' + escHtml(c.imgOrig || '') + '" data-webp="' + escHtml(c.imgWebp || '') + '" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback;}else if(this.dataset.webp&&this.src!==this.dataset.webp){this.src=this.dataset.webp;}" alt="' + escHtml((c.name || '') + ' ' + (c.cno || '')) + '" loading="lazy" decoding="async" width="240" height="336"></span>'
+      + '</button>'
+      + '<div class="dcg-meta"><h3>' + escHtml(c.name || '') + '</h3><p class="dcg-line">' + badges + '</p><p class="dcg-line dcg-market-line" data-dcg-market-line>相場：取得中...</p><p class="dcg-line soft">' + dots + (counterHtml ? counterHtml : '') + '</p></div>'
+      + '</article></li>';
+  }
+
+  function makeDetailSearchText(d) {
+    if (!d || typeof d !== 'object') return '';
+    var parts = [];
+    if (d.upper) parts.push(String(d.upper));
+    if (d.lower) parts.push(String(d.lower));
+    if (d.acq && d.acq.text) parts.push(String(d.acq.text));
+    if (Array.isArray(d.types)) parts.push(d.types.join(' '));
+    if (Array.isArray(d.colors)) parts.push(d.colors.join(' '));
+    if (Array.isArray(d.divo)) {
+      d.divo.forEach(function(x) {
+        if (x && x.label) parts.push(String(x.label));
+        if (x && x.value) parts.push(String(x.value));
+      });
+    }
+    return parts.join(' ');
+  }
+
+  function buildDetailMap(details) {
+    detailMap = {};
+    detailTextMap = {};
+
+    if (Array.isArray(details)) {
+      details.forEach(function(d) {
+        if (d && d.id) {
+          var did = String(d.id);
+          detailMap[did] = d;
+          detailTextMap[did] = makeDetailSearchText(d);
+        }
+      });
+      return;
+    }
+
+    if (details && typeof details === 'object') {
+      Object.keys(details).forEach(function(k) {
+        var d = details[k];
+        if (d) {
+          var did = String(k);
+          detailMap[did] = d;
+          detailTextMap[did] = makeDetailSearchText(d);
+        }
+      });
+    }
+  }
+
+  function ensureFullData() {
+    if (fullData) return Promise.resolve(fullData);
+    if (isLoading) return Promise.resolve(null);
+    if (!dataUrl) return Promise.resolve(null);
+
+    isLoading = true;
+    return fetch(dataUrl, { credentials: 'omit' })
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(json) {
+        if (json && Array.isArray(json.cards)) {
+          fullData = json;
+          masterCards = json.cards.map(normalizeCard);
+          rebuildCardByIdMap();
+          options = (json.filter_options && Object.keys(json.filter_options).length) ? json.filter_options : deriveOptionsFromCards(masterCards);
+          initFilterControls(options);
+          restoreFilterState();
+          buildDetailMap(json.details || []);
+          return fullData;
+        }
+        return null;
+      })
+      .catch(function() { return null; })
+      .finally(function() { isLoading = false; });
+  }
+
+  function toNum(v) {
+    if (v === null || v === undefined) return NaN;
+    var n = parseInt(String(v).replace(/,/g, ''), 10);
+    return isNaN(n) ? NaN : n;
+  }
+
+  function matchCard(c) {
+    if (isDeckFilterMode()) {
+      return getDeckCount(deckState.activeIndex, c.id || '') > 0;
+    }
+
+    if (!cardMatchesAlicion(c)) return false;
+
+    var detailText = detailTextMap[String(c.id || '')] || '';
+    var text = (c.name || '').toLowerCase() + ' ' + (c.cno || '').toLowerCase() + ' ' + (c.effect || '').toLowerCase() + ' ' + (c.sectionText || '').toLowerCase() + ' ' + detailText.toLowerCase();
+    var query = (q && q.value ? q.value : '').trim().toLowerCase();
+    if (query && !containsWordstack(text, query)) return false;
+
+    if (rarity && rarity.value && rarity.value !== (c.rarity || '')) return false;
+    if (level && level.value && level.value !== (c.levelFilter || c.level || '')) return false;
+
+    if (type && type.value) {
+      if ((c.types || []).indexOf(type.value) === -1) return false;
+    }
+
+    if (category && category.value) {
+      if ((c.categories || []).indexOf(category.value) === -1) return false;
+    }
+
+    if (form && form.value && form.value !== (c.form || '')) return false;
+    if (attr && attr.value && attr.value !== (c.attr || '')) return false;
+    if (trigger && trigger.value && (c.triggers || []).indexOf(trigger.value) === -1) return false;
+
+    if (activeColors.size > 0) {
+      var cardColors = c.colors || [];
+      var selectedColors = Array.from(activeColors);
+      for (var i = 0; i < selectedColors.length; i++) {
+        if (cardColors.indexOf(selectedColors[i]) === -1) return false;
+      }
+    }
+
+    var cost = toNum(c.cost);
+    if (costMin && costMin.value) {
+      if (isNaN(cost) || cost < toNum(costMin.value)) return false;
+    }
+    if (costMax && costMax.value) {
+      if (isNaN(cost) || cost > toNum(costMax.value)) return false;
+    }
+
+    var dp = toNum(c.dp);
+    if (dpMin && dpMin.value) {
+      if (isNaN(dp) || dp < toNum(dpMin.value)) return false;
+    }
+    if (dpMax && dpMax.value) {
+      if (isNaN(dp) || dp > toNum(dpMax.value)) return false;
+    }
+
+    if (parallel && !parallel.checked && c.parallel) return false;
+
+    return true;
+  }
+
+  function renderFromCards(cards) {
+    filteredCards = Array.isArray(cards) ? cards : [];
+    renderedCount = 0;
+    if (grid) grid.innerHTML = '';
+    renderNextChunk(chunkSize);
+  }
+
+  function updateResultText() {
+    if (!result) return;
+    var total = filteredCards.length;
+    var shown = Math.min(renderedCount, total);
+    if (shown < total) {
+      result.textContent = total.toLocaleString('ja-JP') + '件中 ' + shown.toLocaleString('ja-JP') + '件表示';
+      return;
+    }
+    result.textContent = total.toLocaleString('ja-JP') + '件';
+  }
+
+  function updateLoadMoreState() {
+    var hasMore = renderedCount < filteredCards.length;
+    if (loadMoreWrap) loadMoreWrap.hidden = !hasMore;
+  }
+
+  function renderNextChunk(size) {
+    if (!grid) return;
+    var step = Math.max(1, parseInt(size || chunkSize, 10) || chunkSize);
+    var start = renderedCount;
+    var end = Math.min(filteredCards.length, start + step);
+    if (end <= start) {
+      updateResultText();
+      updateLoadMoreState();
+      return;
+    }
+
+    var html = filteredCards.slice(start, end).map(renderCard).join('');
+    grid.insertAdjacentHTML('beforeend', html);
+    renderedCount = end;
+    hydrateVisibleMarket();
+    updateResultText();
+    updateLoadMoreState();
+  }
+
+  function colorizeText(text) {
+    var s = String(text || '');
+    var map = { '赤':'red','青':'blue','黄':'yellow','緑':'green','黒':'black','紫':'purple','白':'white','全':'all' };
+    Object.keys(map).forEach(function(k) {
+      var cls = 'dcg-c-' + map[k];
+      s = s.replace(new RegExp(k, 'g'), '<span class="' + cls + '">' + k + '</span>');
+    });
+    return s;
+  }
+
+  function cleanFaqAnswer(text) {
+    var s = String(text || '');
+    return s.replace(/[\s　]*関連カード\s*$/g, '').trim();
+  }
+
+  function renderDetail(card, det) {
+    var rows = [];
+    function row(label, value, html) {
+      if (value === undefined || value === null || value === '') return;
+      rows.push('<dl><dt>' + escHtml(label) + '</dt><dd>' + (html ? value : escHtml(value)) + '</dd></dl>');
+    }
+
+    var recordId = card.recordId || card.id || '';
+    var badges = [];
+    if (card.cno) badges.push('<span class="dcg-badge">' + escHtml(card.cno) + '</span>');
+    if (recordId && recordId !== card.cno) badges.push('<span class="dcg-badge">' + escHtml(recordId) + '</span>');
+    if (card.rarity) badges.push('<span class="dcg-badge rarity">' + escHtml(card.rarity) + '</span>');
+    if (card.type) badges.push('<span class="dcg-badge">' + escHtml(card.type) + '</span>');
+    if (card.level) badges.push('<span class="dcg-badge">' + escHtml(card.level) + '</span>');
+    if (card.parallel) badges.push('<span class="dcg-badge parallel">パラレル</span>');
+
+    row('色', colorizeText(escHtml((card.colors || []).join(' '))), true);
+    row('コスト', card.cost);
+    row('DP', card.dp);
+
+    var divoItems = (det && Array.isArray(det.divo)) ? det.divo.slice() : [];
+    if (!divoItems.length && Array.isArray(card.infoSections)) {
+      card.infoSections.forEach(function(s) {
+        if (s && s.label && String(s.label).indexOf('進化条件') === 0) {
+          divoItems.push({
+            label: s.label,
+            value: s.value || '',
+            colors: Array.isArray(s.colors) ? s.colors.map(function(c) { return c && c.text ? c.text : ''; }).filter(Boolean) : []
+          });
+        }
+      });
+    }
+
+    if (divoItems.length) {
+      divoItems.forEach(function(x, idx) {
+        var label = x.label || ('進化条件' + (idx + 1));
+        row(label, colorizeText(escHtml(x.value || '-')), true);
+      });
+    } else {
+      row('進化条件1', '-');
+    }
+
+    row('形態', card.form);
+    row('属性', card.attr);
+    row('タイプ', (card.types || []).join('/'));
+
+    (function() {
+      var acqSection = null;
+      var sections = Array.isArray(card.infoSections) ? card.infoSections : [];
+      for (var i = 0; i < sections.length; i++) {
+        if (sections[i] && sections[i].label === '入手情報') { acqSection = sections[i]; break; }
+      }
+      if (!acqSection) {
+        if (det && det.acq && det.acq.text) acqSection = { value: det.acq.text, links: [] };
+      }
+      if (acqSection && acqSection.value) {
+        var acqVal = String(acqSection.value);
+        var lnks = Array.isArray(acqSection.links) ? acqSection.links : [];
+        lnks.forEach(function(lnk) {
+          if (lnk && lnk.text) acqVal = acqVal.split(lnk.text).join(' ');
+        });
+        acqVal = acqVal.replace(/\s*(カードリスト|商品情報)\s*/g, ' ');
+        acqVal = acqVal.replace(/\s{2,}/g, ' ');
+        acqVal = acqVal.trim();
+        if (acqVal) row('入手情報', acqVal);
+      }
+    })();
+
+    var knownMarket = getCachedMarket(card);
+    if (knownMarket) row('相場', buildMarketLinkHtml(knownMarket, card), true);
+    else row('相場', '<span data-dcg-detail-market>取得中...</span>', true);
+
+    var faqs = '';
+    if (det && Array.isArray(det.faqs) && det.faqs.length) {
+      var seen = {};
+      faqs = '<div class="dcg-detail-section"><h4>Q&A</h4>' + det.faqs.slice(0, 20).map(function(f) {
+        var ans = cleanFaqAnswer(f.answer || '');
+        var key = (f.question_number || 'Q') + '||' + (f.question || '') + '||' + ans;
+        if (seen[key]) return '';
+        seen[key] = true;
+        return '<div class="dcg-qabox">'
+          + '<div class="dcg-qanum">' + escHtml(f.question_number || 'Q&A') + (f.updated_at ? ' / ' + escHtml(f.updated_at) : '') + '</div>'
+          + '<div class="dcg-qaq">' + escHtml(f.question || '') + '</div>'
+          + '<div class="dcg-qaa">' + escHtml(ans) + '</div>'
+          + '</div>';
+      }).join('') + '</div>';
+    }
+
+    var upperTxt = det && det.upper ? det.upper : '';
+    var lowerTxt = det && det.lower ? det.lower : '';
+    if ((!upperTxt || !lowerTxt) && Array.isArray(card.infoSections)) {
+      card.infoSections.forEach(function(s) {
+        if (!s || !s.title || !Array.isArray(s.entries)) return;
+        var lines = s.entries.map(function(e) {
+          var l = (e && e.label) ? String(e.label) : '';
+          var v = (e && e.value) ? String(e.value) : '';
+          return (l ? l + ' ' : '') + v;
+        }).join('\n').trim();
+        if (s.title === '上段テキスト' && !upperTxt) upperTxt = lines;
+        if (s.title === '下段テキスト' && !lowerTxt) lowerTxt = lines;
+      });
+    }
+    if (!upperTxt && card.effect) upperTxt = card.effect;
+    if (!lowerTxt) lowerTxt = '-';
+
+    var upper = '<div class="dcg-detail-section"><h4>上段テキスト</h4><p class="dcg-detail-pre">' + escHtml(upperTxt || '-') + '</p></div>';
+    var lower = '<div class="dcg-detail-section"><h4>下段テキスト</h4><p class="dcg-detail-pre">' + escHtml(lowerTxt || '-') + '</p></div>';
+
+    var variants = masterCards.filter(function(v) {
+      return String(v.cno || '') === String(card.cno || '') && String(v.id || '') !== String(card.id || '');
+    });
+
+    var variantHtml = variants.length
+      ? '<div class="dcg-detail-section"><h4>同一番号カード</h4><div class="dcg-variant-grid">' + variants.map(function(v) {
+          return '<button type="button" class="dcg-variant-btn" data-dcg-open="' + escHtml(v.id || '') + '">'
+            + '<img src="' + escHtml(v.img || '') + '" data-fallback="' + escHtml(v.imgOrig || '') + '" data-webp="' + escHtml(v.imgWebp || '') + '" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback;}else if(this.dataset.webp&&this.src!==this.dataset.webp){this.src=this.dataset.webp;}" alt="' + escHtml(v.name || '') + '">'
+            + '<div class="dcg-variant-id">' + escHtml((v.id || '').toString()) + '</div>'
+            + '</button>';
+        }).join('') + '</div></div>'
+      : '';
+
+    return ''
+      + '<div class="dcg-detail">'
+      + '<div><span class="dcg-thumb"><img src="' + escHtml(card.img || '') + '" data-fallback="' + escHtml(card.imgOrig || '') + '" data-webp="' + escHtml(card.imgWebp || '') + '" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback;}else if(this.dataset.webp&&this.src!==this.dataset.webp){this.src=this.dataset.webp;}" alt="' + escHtml(card.name || '') + '"></span>' + variantHtml + '</div>'
+      + '<div><h3>' + escHtml(card.name || '') + '</h3><div class="dcg-detail-badges">' + badges.join('') + '</div>' + rows.join('') + upper + lower + faqs + '</div>'
+      + '</div>';
+  }
+
+  function openDetail(id) {
+    var targetId = String(id || '');
+    var card = masterCards.find(function(c) { return String(c.id || '') === targetId; });
+    if (!card) return;
+
+    var det = detailMap[targetId] || null;
+    if (!det && !fullData) {
+      ensureFullData().then(function() { openDetail(targetId); });
+      return;
+    }
+
+    currentDetailCardId = targetId;
+    if (modalContent) modalContent.innerHTML = renderDetail(card, det);
+    if (modal) modal.hidden = false;
+    if (modalBox) modalBox.scrollTop = 0;
+    if (modalContent) modalContent.scrollTop = 0;
+
+    fetchMarket(card).then(function(data) {
+      if (!modalContent || String(currentDetailCardId) !== targetId) return;
+      var slot = modalContent.querySelector('[data-dcg-detail-market]');
+      if (!slot) return;
+      slot.innerHTML = buildMarketLinkHtml(data || {}, cardById[currentDetailCardId] || null);
+    });
+  }
+
+  function closeDetail() {
+    if (modal) modal.hidden = true;
+    if (modalBox) modalBox.scrollTop = 0;
+    if (modalContent) modalContent.scrollTop = 0;
+  }
+
+  function apply() {
+    var source = masterCards;
+    var filtered = source.filter(matchCard);
+    renderFromCards(filtered);
+    renderDeckSticky();
+    if (!isDeckFilterMode()) saveFilterState();
+  }
+
+  function saveFilterState() {
+    var state = getCurrentFilterState();
+    try { sessionStorage.setItem('dcg_filter_state', JSON.stringify(state)); } catch(e) {}
+  }
+
+  function restoreFilterState() {
+    var saved;
+    try { saved = JSON.parse(sessionStorage.getItem('dcg_filter_state') || ''); } catch(e) { return false; }
+    return applyFilterState(saved);
+  }
+
+  function applyDefaultCategory() {
+    if (!category) return;
+    var first = category.options[1];
+    if (first) category.value = first.value;
+  }
+
+  ['input', 'change'].forEach(function(evt) {
+    if (q) q.addEventListener(evt, apply);
+    if (rarity) rarity.addEventListener(evt, apply);
+    if (level) level.addEventListener(evt, apply);
+    if (type) type.addEventListener(evt, apply);
+    if (category) category.addEventListener(evt, apply);
+    if (form) form.addEventListener(evt, apply);
+    if (attr) attr.addEventListener(evt, apply);
+    if (trigger) trigger.addEventListener(evt, apply);
+    if (costMin) costMin.addEventListener(evt, apply);
+    if (costMax) costMax.addEventListener(evt, apply);
+    if (dpMin) dpMin.addEventListener(evt, apply);
+    if (dpMax) dpMax.addEventListener(evt, apply);
+    if (parallel) parallel.addEventListener(evt, apply);
+    if (alicion) alicion.addEventListener(evt, function() {
+      buildCategoryOptions(options.categories || []);
+      apply();
+    });
+  });
+
+  if (deckSticky) {
+    deckSticky.addEventListener('click', function(e) {
+      var collapseBtn = e.target.closest('[data-dcg-deck-collapse]');
+      if (collapseBtn && isMobileDeckUi()) {
+        deckMobileCollapsed = true;
+        renderDeckSticky();
+        return;
+      }
+
+      var expandBtn = e.target.closest('[data-dcg-deck-expand]');
+      if (expandBtn && isMobileDeckUi()) {
+        deckMobileCollapsed = false;
+        renderDeckSticky();
+        return;
+      }
+
+      var confirmBtn = e.target.closest('[data-dcg-deck-confirm]');
+      if (confirmBtn) {
+        enterDeckFilterMode();
+        apply();
+        return;
+      }
+
+      var backBtn = e.target.closest('[data-dcg-deck-back]');
+      if (backBtn) {
+        leaveDeckFilterModeAndRestore();
+        apply();
+        return;
+      }
+
+      var resetBtn = e.target.closest('[data-dcg-deck-reset]');
+      if (resetBtn) {
+        resetActiveDeck();
+        apply();
+        return;
+      }
+
+      var saveBtn = e.target.closest('[data-dcg-deck-save]');
+      if (saveBtn) {
+        exportActiveDeckAsText();
+        return;
+      }
+
+      var btn = e.target.closest('[data-dcg-deck-tab]');
+      if (!btn) return;
+      var idx = parseInt(btn.getAttribute('data-dcg-deck-tab') || '', 10);
+      if (isNaN(idx) || idx < 0 || idx >= DECK_COUNT) return;
+
+      if (deckState.mode !== 'off' && idx === deckState.activeIndex) {
+        if (deckState.mode === 'selected') {
+          enterDeckFilterMode();
+        } else if (deckState.mode === 'filter') {
+          leaveDeckFilterModeAndRestore();
+        }
+      } else {
+        selectDeck(idx);
+      }
+      apply();
+    });
+  }
+
+  if (grid) {
+    grid.addEventListener('click', function(e) {
+      var plusBtn = e.target.closest('[data-dcg-deck-plus]');
+      if (plusBtn && shouldShowDeckControls()) {
+        var plusId = plusBtn.getAttribute('data-dcg-deck-plus') || '';
+        var plusNow = getDeckCount(deckState.activeIndex, plusId);
+        if (plusNow < 4) {
+          setDeckCount(deckState.activeIndex, plusId, plusNow + 1);
+          saveDeckCounts();
+          apply();
+        }
+        return;
+      }
+
+      var minusBtn = e.target.closest('[data-dcg-deck-minus]');
+      if (minusBtn && shouldShowDeckControls()) {
+        var minusId = minusBtn.getAttribute('data-dcg-deck-minus') || '';
+        var minusNow = getDeckCount(deckState.activeIndex, minusId);
+        if (minusNow > 0) {
+          setDeckCount(deckState.activeIndex, minusId, minusNow - 1);
+          saveDeckCounts();
+          apply();
+        }
+        return;
+      }
+
+      var btn = e.target.closest('[data-dcg-open]');
+      if (!btn) return;
+      openDetail(btn.getAttribute('data-dcg-open'));
+    });
+  }
+
+  if (modalContent) {
+    modalContent.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-dcg-open]');
+      if (!btn) return;
+      openDetail(btn.getAttribute('data-dcg-open'));
+    });
+  }
+
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target.hasAttribute('data-dcg-close')) closeDetail();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeDetail();
+    });
+  }
+
+  if (reset) {
+    reset.addEventListener('click', function() {
+      resetFilterInputs();
+      buildCategoryOptions(options.categories || []);
+      try { sessionStorage.removeItem('dcg_filter_state'); } catch(e) {}
+      apply();
+    });
+  }
+
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', function() {
+      renderNextChunk(chunkSize);
+    });
+  }
+
+  if (sentinel && 'IntersectionObserver' in window) {
+    chunkObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) renderNextChunk(chunkSize);
+      });
+    }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
+    chunkObserver.observe(sentinel);
+  }
+
+  function loadAndApplySeed() {
+    masterCards = (seed.cards || []).map(normalizeCard);
+    rebuildCardByIdMap();
+    if (!options || !Object.keys(options).length) options = deriveOptionsFromCards(masterCards);
+    initFilterControls(options);
+    buildCategoryOptions(options.categories || []);
+    buildDetailMap(seed.details || {});
+    if (!restoreFilterState()) applyDefaultCategory();
+    apply();
+  }
+
+  loadDeckCounts();
+  loadDeckUiState();
+  renderDeckSticky();
+  loadAndApplySeed();
+
+  ensureFullData().then(function(data) {
+    if (data && Array.isArray(data.cards)) apply();
+  });
+})();
+</script>
+</body>
+</html>
